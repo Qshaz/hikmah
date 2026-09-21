@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#6D28D9">
+  <title>My Expenses</title>
+  <style>
+    :root {
+      --purple: #6D28D9;
+      --purple-light: #EDE9FE;
+      --purple-mid: #8B5CF6;
+      --green: #059669;
+      --red: #DC2626;
+      --bg: #F5F3FF;
+      --surface: #FFFFFF;
+      --text: #1F2937;
+      --muted: #6B7280;
+      --border: #E5E7EB;
+      --tab-h: 64px;
+      --safe-b: env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ──────── LAYOUT ──────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      height: 100dvh;
+    }
+
+    .screen {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: none;
+      padding-bottom: calc(var(--tab-h) + var(--safe-b) + 16px);
+    }
+    .screen.active { display: block; }
+
+    /* ──────── TOP BAR ──────── */
+    .topbar {
+      background: var(--purple);
+      color: #fff;
+      padding: 16px 20px 20px;
+      padding-top: max(16px, env(safe-area-inset-top, 16px));
+    }
+    .topbar-label { font-size: 13px; opacity: 0.75; letter-spacing: 0.04em; text-transform: uppercase; }
+    .topbar-amount { font-size: 36px; font-weight: 800; margin-top: 2px; }
+    .topbar-sub { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+
+    /* ──────── TAB BAR ──────── */
+    .tabbar {
+      display: flex;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding-bottom: var(--safe-b);
+      height: calc(var(--tab-h) + var(--safe-b));
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 10px;
+      color: var(--muted);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px 0;
+      -webkit-tap-highlight-color: transparent;
+      transition: color 0.15s;
+    }
+    .tab-btn.active { color: var(--purple); }
+    .tab-btn .icon { font-size: 22px; line-height: 1; }
+
+    /* Center FAB tab */
+    .tab-fab {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      top: -10px;
+    }
+    .fab-circle {
+      width: 56px; height: 56px;
+      background: var(--purple);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(109,40,217,0.4);
+    }
+
+    /* ──────── HOME SCREEN ──────── */
+    .month-header {
+      background: var(--purple);
+      color: #fff;
+      padding: 0 20px 24px;
+    }
+    .month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+    }
+    .month-nav-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: #fff;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .month-name { font-size: 16px; font-weight: 600; }
+
+    .expense-list { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+    .expense-group-date {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-top: 8px;
+      margin-bottom: 2px;
+    }
+
+    .expense-card {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .expense-emoji {
+      font-size: 26px;
+      width: 44px; height: 44px;
+      background: var(--purple-light);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .expense-info { flex: 1; min-width: 0; }
+    .expense-cat  { font-size: 14px; font-weight: 700; }
+    .expense-note { font-size: 12px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .expense-amount { font-size: 16px; font-weight: 800; color: var(--purple); flex-shrink: 0; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-title { font-size: 17px; font-weight: 600; color: #374151; }
+    .empty-sub { font-size: 14px; margin-top: 6px; }
+
+    /* ──────── ADD MODAL ──────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: flex-end;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 24px 24px 0 0;
+      padding: 0 20px 24px;
+      padding-bottom: calc(24px + var(--safe-b));
+      width: 100%;
+      max-height: 92dvh;
+      overflow-y: auto;
+      animation: slideUp 0.25s ease;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: #D1D5DB;
+      border-radius: 2px;
+      margin: 12px auto 20px;
+    }
+
+    .modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; }
+
+    /* Amount input */
+    .amount-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--purple-light);
+      border-radius: 14px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    .currency-label { font-size: 18px; font-weight: 700; color: var(--purple); }
+    .amount-input {
+      flex: 1;
+      background: none;
+      border: none;
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--purple);
+      outline: none;
+      width: 100%;
+      min-width: 0;
+    }
+    .amount-input::placeholder { color: #C4B5FD; }
+
+    /* Categories */
+    .section-label { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .cat-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 6px;
+      background: var(--bg);
+      border: 2px solid transparent;
+      border-radius: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.12s;
+    }
+    .cat-btn.selected {
+      background: var(--purple-light);
+      border-color: var(--purple);
+    }
+    .cat-btn .cat-emoji { font-size: 22px; }
+    .cat-btn .cat-name  { font-size: 10px; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.2; }
+    .cat-btn.selected .cat-name { color: var(--purple); }
+
+    /* Note field */
+    .note-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      background: var(--surface);
+      margin-bottom: 16px;
+    }
+    .note-input:focus { border-color: var(--purple); }
+
+    /* Date input */
+    .date-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+    .date-input:focus { border-color: var(--purple); }
+
+    /* Photo row */
+    .photo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .photo-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--bg);
+      border: 1.5px dashed #C4B5FD;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--purple-mid);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .photo-preview {
+      width: 48px; height: 48px;
+      border-radius: 10px;
+      object-fit: cover;
+      display: none;
+    }
+    .ai-reading {
+      font-size: 12px;
+      color: var(--purple-mid);
+      display: none;
+    }
+
+    /* Save button */
+    .save-btn {
+      width: 100%;
+      padding: 17px;
+      background: var(--purple);
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .save-btn:active { background: #5B21B6; }
+    .save-btn:disabled { background: #C4B5FD; }
+
+    /* ──────── DASHBOARD SCREEN ──────── */
+    .dash-header {
+      background: var(--purple);
+      color: #fff;
+      padding: 20px 20px 28px;
+    }
+    .dash-title { font-size: 13px; opacity: 0.75; text-transform: uppercase; letter-spacing: 0.04em; }
+    .dash-total { font-size: 40px; font-weight: 800; margin-top: 4px; }
+    .dash-sub   { font-size: 13px; opacity: 0.7; margin-top: 2px; }
+
+    .dash-section { padding: 20px; }
+    .dash-section-title { font-size: 15px; font-weight: 800; margin-bottom: 14px; }
+
+    .cat-bar-row { margin-bottom: 14px; }
+    .cat-bar-top { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; }
+    .cat-bar-name { font-weight: 600; }
+    .cat-bar-amt  { font-weight: 700; color: var(--purple); }
+    .cat-bar-track { background: var(--purple-light); border-radius: 99px; height: 8px; overflow: hidden; }
+    .cat-bar-fill  { background: var(--purple-mid); height: 100%; border-radius: 99px; transition: width 0.5s ease; }
+
+    /* ──────── SETTINGS SCREEN ──────── */
+    .settings-section {
+      background: var(--surface);
+      margin: 16px;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .settings-title {
+      padding: 14px 16px 0;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      gap: 12px;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-row-label { font-size: 15px; font-weight: 600; }
+    .settings-row-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .settings-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: monospace;
+      outline: none;
+      text-align: right;
+      max-width: 180px;
+    }
+    .settings-input:focus { border-color: var(--purple); }
+
+    .settings-btn {
+      padding: 9px 16px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .settings-btn-purple { background: var(--purple); color: #fff; }
+    .settings-btn-red    { background: #FEE2E2; color: var(--red); }
+    .settings-btn-green  { background: #D1FAE5; color: var(--green); }
+
+    .settings-page-title {
+      padding: 20px 16px 8px;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    /* ──────── MONTH SELECTOR ON DASH ──────── */
+    .dash-month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+    }
+    .dash-month-nav-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: #fff;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dash-month-label { font-size: 14px; font-weight: 600; opacity: 0.9; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--tab-h) + var(--safe-b) + 12px);
+      left: 50%; transform: translateX(-50%);
+      background: #1F2937;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 200;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; }
+
+    /* Month summary chips on home */
+    .month-chips {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .month-chips::-webkit-scrollbar { display: none; }
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.9);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .chip-emoji { font-size: 13px; }
+  </style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ══════ HOME SCREEN ══════ -->
+  <div class="screen active" id="screen-home">
+    <div class="month-header">
+      <div class="month-nav">
+        <button class="month-nav-btn" onclick="changeHomeMonth(-1)">‹</button>
+        <span class="month-name" id="home-month-label">September 2026</span>
+        <button class="month-nav-btn" onclick="changeHomeMonth(1)">›</button>
+      </div>
+      <div style="margin-top:14px">
+        <div class="topbar-label">Total Spent</div>
+        <div class="topbar-amount" id="home-total">PKR 0</div>
+        <div class="topbar-sub" id="home-count">0 expenses</div>
+      </div>
+      <div class="month-chips" id="home-chips"></div>
+    </div>
+    <div class="expense-list" id="expense-list">
+      <div class="empty-state">
+        <div class="empty-icon">💸</div>
+        <div class="empty-title">No expenses yet</div>
+        <div class="empty-sub">Tap + to add your first one</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ DASHBOARD SCREEN ══════ -->
+  <div class="screen" id="screen-dash">
+    <div class="dash-header">
+      <div class="dash-title">Monthly Overview</div>
+      <div class="dash-total" id="dash-total">PKR 0</div>
+      <div class="dash-sub" id="dash-sub">0 expenses</div>
+      <div class="dash-month-nav">
+        <button class="dash-month-nav-btn" onclick="changeDashMonth(-1)">‹</button>
+        <span class="dash-month-label" id="dash-month-label">September 2026</span>
+        <button class="dash-month-nav-btn" onclick="changeDashMonth(1)">›</button>
+      </div>
+    </div>
+    <div class="dash-section">
+      <div class="dash-section-title">Spending by Category</div>
+      <div id="cat-bars"></div>
+    </div>
+  </div>
+
+  <!-- ══════ SETTINGS SCREEN ══════ -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-page-title">⚙️ Settings</div>
+
+    <div class="settings-section">
+      <div class="settings-title">AI Photo Reading</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Anthropic API Key</div>
+          <div class="settings-row-sub">Lets the app auto-read receipts. Get it at console.anthropic.com → API Keys. Stored on your phone only.</div>
+        </div>
+      </div>
+      <div class="settings-row">
+        <input class="settings-input" id="api-key-input" type="password" placeholder="sk-ant-...">
+        <button class="settings-btn settings-btn-purple" onclick="saveApiKey()">Save</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">Data</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Export to CSV</div>
+          <div class="settings-row-sub">Download all expenses as a spreadsheet file</div>
+        </div>
+        <button class="settings-btn settings-btn-green" onclick="exportCSV()">Export</button>
+      </div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">Clear All Data</div>
+          <div class="settings-row-sub">Delete all expenses permanently</div>
+        </div>
+        <button class="settings-btn settings-btn-red" onclick="clearAll()">Clear</button>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-title">Add to Home Screen</div>
+      <div class="settings-row">
+        <div>
+          <div class="settings-row-label">iPhone: Safari → Share → Add to Home Screen</div>
+          <div class="settings-row-sub">Android: Chrome menu → Add to Home Screen</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══════ TAB BAR ══════ -->
+  <div class="tabbar">
+    <button class="tab-btn active" id="tab-home" onclick="showTab('home')">
+      <span class="icon">🏠</span>
+      <span>Home</span>
+    </button>
+    <button class="tab-fab" onclick="openAddModal()">
+      <div class="fab-circle">+</div>
+    </button>
+    <button class="tab-btn" id="tab-dash" onclick="showTab('dash')">
+      <span class="icon">📊</span>
+      <span>Stats</span>
+    </button>
+    <button class="tab-btn" id="tab-settings" onclick="showTab('settings')">
+      <span class="icon">⚙️</span>
+      <span>Settings</span>
+    </button>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ══════ ADD EXPENSE MODAL ══════ -->
+<div class="modal-overlay" id="add-modal" onclick="handleOverlayClick(event)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Expense</div>
+
+    <div class="amount-row">
+      <span class="currency-label">PKR</span>
+      <input class="amount-input" id="amount-input" type="number"
+             inputmode="decimal" placeholder="0" min="0" step="1">
+    </div>
+
+    <div class="section-label">Category</div>
+    <div class="cat-grid" id="cat-grid"></div>
+
+    <div class="section-label">Note (optional)</div>
+    <input class="note-input" id="note-input" type="text" placeholder="e.g. Lunch at Cosa Nostra">
+
+    <div class="section-label">Date</div>
+    <input class="date-input" id="date-input" type="date">
+
+    <div class="section-label">Photo (optional)</div>
+    <div class="photo-row">
+      <label class="photo-btn" for="photo-input">
+        📷 Choose Photo
+      </label>
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhoto(this)">
+      <img id="photo-preview" class="photo-preview" alt="">
+      <span class="ai-reading" id="ai-reading">⏳ Reading receipt…</span>
+    </div>
+
+    <button class="save-btn" id="save-btn" onclick="saveExpense()">Save Expense</button>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════
+//  DATA
+// ════════════════════════════════════════════
+const STORAGE_KEY = 'my_expenses_v1';
+
+const CATEGORIES = [
+  { name: 'Shopping',   emoji: '🛍️' },
+  { name: 'Dining',     emoji: '🍽️' },
+  { name: 'Coffee',     emoji: '☕' },
+  { name: 'Fashion',    emoji: '👗' },
+  { name: 'Beauty',     emoji: '💄' },
+  { name: 'Health',     emoji: '🏥' },
+  { name: 'Transport',  emoji: '🚗' },
+  { name: 'Fun',        emoji: '🎭' },
+  { name: 'Gifts',      emoji: '🎁' },
+  { name: 'Education',  emoji: '📚' },
+  { name: 'Groceries',  emoji: '🛒' },
+  { name: 'Other',      emoji: '💳' },
+];
+
+function loadExpenses() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
+}
+
+function saveToStorage(expenses) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses)); } catch {}
+}
+
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let selectedCategory = null;
+let currentPhotoBase64 = null;
+let currentPhotoType = null;
+let homeMonthOffset = 0;
+let dashMonthOffset = 0;
+
+function getMonthRange(offset) {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + offset);
+  const year  = d.getFullYear();
+  const month = d.getMonth();
+  const label = d.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const start = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const end   = `${year}-${String(month + 1).padStart(2, '0')}-31`;
+  return { year, month, label, start, end };
+}
+
+// ════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════
+function showTab(id) {
+  ['home', 'dash', 'settings'].forEach(t => {
+    document.getElementById('screen-' + t).classList.toggle('active', t === id);
+    const tb = document.getElementById('tab-' + t);
+    if (tb) tb.classList.toggle('active', t === id);
+  });
+  if (id === 'home')     renderHome();
+  if (id === 'dash')     renderDash();
+  if (id === 'settings') renderSettings();
+}
+
+// ════════════════════════════════════════════
+//  HOME
+// ════════════════════════════════════════════
+function changeHomeMonth(delta) {
+  homeMonthOffset += delta;
+  if (homeMonthOffset > 0) homeMonthOffset = 0;
+  renderHome();
+}
+
+function renderHome() {
+  const { label, start, end } = getMonthRange(homeMonthOffset);
+  document.getElementById('home-month-label').textContent = label;
+
+  const all = loadExpenses();
+  const month = all.filter(e => e.date >= start && e.date <= end);
+  const total = month.reduce((s, e) => s + (e.amount || 0), 0);
+
+  document.getElementById('home-total').textContent = 'PKR ' + fmt(total);
+  document.getElementById('home-count').textContent = month.length + ' expense' + (month.length !== 1 ? 's' : '');
+
+  // Category chips
+  const chipEl = document.getElementById('home-chips');
+  const bycat = {};
+  month.forEach(e => { bycat[e.category] = (bycat[e.category] || 0) + e.amount; });
+  const sorted = Object.entries(bycat).sort((a,b) => b[1]-a[1]).slice(0, 5);
+  chipEl.innerHTML = sorted.map(([cat, amt]) => {
+    const emoji = (CATEGORIES.find(c => c.name === cat) || {}).emoji || '💳';
+    return `<div class="chip"><span class="chip-emoji">${emoji}</span>${cat}: PKR ${fmt(amt)}</div>`;
+  }).join('');
+
+  // Expense list
+  const listEl = document.getElementById('expense-list');
+  if (month.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">💸</div>
+      <div class="empty-title">No expenses for ${label}</div>
+      <div class="empty-sub">Tap + to add your first one</div>
+    </div>`;
+    return;
+  }
+
+  // Group by date
+  const grouped = {};
+  month.forEach(e => {
+    if (!grouped[e.date]) grouped[e.date] = [];
+    grouped[e.date].push(e);
+  });
+
+  const dates = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
+  listEl.innerHTML = dates.map(date => {
+    const label2 = formatDateLabel(date);
+    const items = grouped[date].map(e => {
+      const cat = CATEGORIES.find(c => c.name === e.category) || { emoji: '💳' };
+      return `<div class="expense-card" onclick="editExpense(${e.id})">
+        <div class="expense-emoji">${cat.emoji}</div>
+        <div class="expense-info">
+          <div class="expense-cat">${e.category}</div>
+          ${e.note ? `<div class="expense-note">${e.note}</div>` : ''}
+        </div>
+        <div class="expense-amount">PKR ${fmt(e.amount)}</div>
+      </div>`;
+    }).join('');
+    return `<div class="expense-group-date">${label2}</div>${items}`;
+  }).join('');
+}
+
+function formatDateLabel(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const yest  = new Date(today); yest.setDate(yest.getDate()-1);
+  if (d.getTime() === today.getTime()) return 'Today';
+  if (d.getTime() === yest.getTime())  return 'Yesterday';
+  return d.toLocaleDateString('default', { weekday: 'long', day: 'numeric', month: 'short' });
+}
+
+function editExpense(id) {
+  const expenses = loadExpenses();
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  if (!confirm(`Delete this expense?\n${e.category} – PKR ${fmt(e.amount)}`)) return;
+  saveToStorage(expenses.filter(x => x.id !== id));
+  renderHome();
+  showToast('Expense deleted');
+}
+
+// ════════════════════════════════════════════
+//  DASHBOARD
+// ════════════════════════════════════════════
+function changeDashMonth(delta) {
+  dashMonthOffset += delta;
+  if (dashMonthOffset > 0) dashMonthOffset = 0;
+  renderDash();
+}
+
+function renderDash() {
+  const { label, start, end } = getMonthRange(dashMonthOffset);
+  document.getElementById('dash-month-label').textContent = label;
+
+  const all = loadExpenses();
+  const month = all.filter(e => e.date >= start && e.date <= end);
+  const total = month.reduce((s, e) => s + (e.amount || 0), 0);
+
+  document.getElementById('dash-total').textContent = 'PKR ' + fmt(total);
+  document.getElementById('dash-sub').textContent = month.length + ' expense' + (month.length !== 1 ? 's' : '') + ' in ' + label;
+
+  const bycat = {};
+  month.forEach(e => { bycat[e.category] = (bycat[e.category] || 0) + e.amount; });
+  const sorted = Object.entries(bycat).sort((a,b) => b[1]-a[1]);
+  const max = sorted.length ? sorted[0][1] : 1;
+
+  document.getElementById('cat-bars').innerHTML = sorted.length
+    ? sorted.map(([cat, amt]) => {
+        const pct = Math.round((amt / max) * 100);
+        return `<div class="cat-bar-row">
+          <div class="cat-bar-top">
+            <span class="cat-bar-name">${cat}</span>
+            <span class="cat-bar-amt">PKR ${fmt(amt)}</span>
+          </div>
+          <div class="cat-bar-track">
+            <div class="cat-bar-fill" style="width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('')
+    : '<div style="color:var(--muted);font-size:14px;text-align:center;padding:24px 0">No data for this month</div>';
+}
+
+// ════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════
+function renderSettings() {
+  const key = localStorage.getItem('anthropic_key') || '';
+  document.getElementById('api-key-input').value = key ? '••••••••' + key.slice(-6) : '';
+}
+
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (val && !val.startsWith('••')) {
+    localStorage.setItem('anthropic_key', val);
+    showToast('API key saved ✓');
+    renderSettings();
+  }
+}
+
+function clearAll() {
+  if (!confirm('Delete ALL expenses? This cannot be undone.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  renderHome();
+  showToast('All data cleared');
+}
+
+function exportCSV() {
+  const expenses = loadExpenses();
+  if (!expenses.length) { showToast('No expenses to export'); return; }
+  const rows = [['Date','Category','Note','Amount (PKR)']];
+  expenses.forEach(e => rows.push([e.date, e.category, e.note || '', e.amount]));
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'expenses_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ════════════════════════════════════════════
+//  ADD MODAL
+// ════════════════════════════════════════════
+function openAddModal() {
+  selectedCategory = null;
+  currentPhotoBase64 = null;
+  currentPhotoType = null;
+
+  document.getElementById('amount-input').value = '';
+  document.getElementById('note-input').value = '';
+  document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+  document.getElementById('photo-input').value = '';
+  document.getElementById('photo-preview').style.display = 'none';
+  document.getElementById('ai-reading').style.display = 'none';
+
+  buildCatGrid();
+  document.getElementById('add-modal').classList.add('open');
+  setTimeout(() => document.getElementById('amount-input').focus(), 300);
+}
+
+function closeModal() {
+  document.getElementById('add-modal').classList.remove('open');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('add-modal')) closeModal();
+}
+
+function buildCatGrid() {
+  document.getElementById('cat-grid').innerHTML = CATEGORIES.map(c =>
+    `<button class="cat-btn ${selectedCategory === c.name ? 'selected' : ''}"
+             onclick="selectCat('${c.name}')">
+       <span class="cat-emoji">${c.emoji}</span>
+       <span class="cat-name">${c.name}</span>
+     </button>`
+  ).join('');
+}
+
+function selectCat(name) {
+  selectedCategory = name;
+  buildCatGrid();
+}
+
+function saveExpense() {
+  const amt = parseFloat(document.getElementById('amount-input').value);
+  if (!amt || amt <= 0) { showToast('Enter an amount first'); return; }
+  if (!selectedCategory)  { showToast('Choose a category');    return; }
+
+  const note = document.getElementById('note-input').value.trim();
+  const date = document.getElementById('date-input').value || new Date().toISOString().split('T')[0];
+
+  const expenses = loadExpenses();
+  expenses.unshift({ id: Date.now(), date, amount: amt, category: selectedCategory, note });
+  saveToStorage(expenses);
+
+  closeModal();
+  renderHome();
+  showTab('home');
+  showToast('Saved ✓');
+}
+
+// ════════════════════════════════════════════
+//  PHOTO + AI
+// ════════════════════════════════════════════
+async function handlePhoto(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    const dataUrl = ev.target.result;
+    document.getElementById('photo-preview').src = dataUrl;
+    document.getElementById('photo-preview').style.display = 'block';
+
+    const base64 = dataUrl.split(',')[1];
+    const mime   = file.type || 'image/jpeg';
+    currentPhotoBase64 = base64;
+    currentPhotoType   = mime;
+
+    const key = localStorage.getItem('anthropic_key');
+    if (!key) return; // no AI, user enters manually
+
+    document.getElementById('ai-reading').style.display = 'inline';
+    document.getElementById('save-btn').disabled = true;
+
+    try {
+      const result = await readReceiptAI(base64, mime, key);
+      if (result) {
+        if (result.amount && result.amount > 0) {
+          document.getElementById('amount-input').value = Math.round(result.amount);
+        }
+        if (result.category) {
+          const match = CATEGORIES.find(c =>
+            c.name.toLowerCase() === result.category.toLowerCase()
+          );
+          if (match) { selectedCategory = match.name; buildCatGrid(); }
+        }
+        if (result.note) {
+          document.getElementById('note-input').value = result.note;
+        }
+        showToast('Receipt read ✓');
+      }
+    } catch (err) {
+      showToast('Could not read receipt — enter manually');
+    }
+
+    document.getElementById('ai-reading').style.display = 'none';
+    document.getElementById('save-btn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function readReceiptAI(base64, mediaType, apiKey) {
+  const catNames = CATEGORIES.map(c => c.name).join(', ');
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: `Read this receipt. Return ONLY a JSON object (no markdown):
+{"amount": 0.00, "category": "one from: ${catNames}", "note": "2-5 word description"}
+amount = total amount due as a number. Use 0 if unclear.` }
+        ]
+      }]
+    })
+  });
+
+  if (!resp.ok) throw new Error('API error');
+  const data = await resp.json();
+  let text = (data.content[0].text || '').trim();
+  if (text.includes('```')) {
+    text = text.split('```').find(p => p.trim().startsWith('{')) || text;
+  }
+  return JSON.parse(text);
+}
+
+// ════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════
+function fmt(n) {
+  return Math.round(n).toLocaleString('en-PK');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+renderHome();
+</script>
+
+</body>
+</html>
