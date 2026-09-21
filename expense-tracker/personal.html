@@ -1,363 +1,341 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#1E3A5F">
-  <title>My Expenses</title>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --hh: #1E3A5F;      /* household blue */
-      --hh-l: #DBEAFE;
-      --hh-m: #2563EB;
-      --pe: #6D28D9;      /* personal purple */
-      --pe-l: #EDE9FE;
-      --pe-m: #8B5CF6;
-      --green: #059669;
-      --red: #DC2626;
-      --bg: #F1F5F9;
-      --surface: #fff;
-      --text: #1F2937;
-      --muted: #6B7280;
-      --border: #E5E7EB;
-      --tab-h: 62px;
-      --safe-b: env(safe-area-inset-bottom, 0px);
-      --safe-t: env(safe-area-inset-top, 0px);
-      --curr: 'PKR';
+<title>My Expenses</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --hh: #1E3A5F;
+    --hh-l: #DBEAFE;
+    --hh-m: #2563EB;
+    --pe: #6D28D9;
+    --pe-l: #EDE9FE;
+    --pe-m: #8B5CF6;
+    --green: #059669;
+    --red: #DC2626;
+    --bg: #F1F5F9;
+    --surface: #fff;
+    --text: #1F2937;
+    --muted: #6B7280;
+    --border: #E5E7EB;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0F172A;
+      --surface: #1E293B;
+      --text: #F1F5F9;
+      --muted: #94A3B8;
+      --border: #334155;
+      --hh-l: #1E3A5F;
+      --pe-l: #3B1E7A;
     }
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html, body { height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
-    #app { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0F172A; --surface: #1E293B; --text: #F1F5F9;
+    --muted: #94A3B8; --border: #334155;
+    --hh-l: #1E3A5F; --pe-l: #3B1E7A;
+  }
 
-    /* ── SCREENS ── */
-    .screen { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: none; padding-bottom: calc(var(--tab-h) + var(--safe-b) + 20px); }
-    .screen.active { display: block; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; padding: 0; }
 
-    /* ── TAB BAR ── */
-    .tabbar { display: flex; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: var(--safe-b); height: calc(var(--tab-h) + var(--safe-b)); flex-shrink: 0; z-index: 20; }
-    .tab-btn { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 9px; font-weight: 600; color: var(--muted); background: none; border: none; cursor: pointer; padding: 6px 0; -webkit-tap-highlight-color: transparent; }
-    .tab-btn .ti { font-size: 20px; line-height: 1; }
-    .tab-btn.active { color: var(--hh); }
-    .tab-fab { flex: 1; display: flex; align-items: center; justify-content: center; background: none; border: none; cursor: pointer; position: relative; top: -12px; -webkit-tap-highlight-color: transparent; }
-    .fab { width: 54px; height: 54px; background: var(--hh); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #fff; box-shadow: 0 4px 16px rgba(30,58,95,.4); }
+  #app { display: flex; flex-direction: column; height: 100%; }
 
-    /* ── SHARED HEADER ── */
-    .pg-header { padding: 16px 20px 20px; padding-top: max(16px, var(--safe-t)); color: #fff; }
-    .pg-header.blue   { background: var(--hh); }
-    .pg-header.purple { background: var(--pe); }
-    .mnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-    .mnav-btn { background: rgba(255,255,255,.2); border: none; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .mnav-label { font-size: 15px; font-weight: 700; }
-    .hdg-sub  { font-size: 12px; opacity: .7; text-transform: uppercase; letter-spacing: .05em; }
-    .hdg-amt  { font-size: 34px; font-weight: 800; margin: 4px 0 2px; }
-    .hdg-row  { display: flex; gap: 10px; flex-wrap: wrap; }
-    .hdg-pill { background: rgba(255,255,255,.18); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.9); }
+  /* ── SCREENS ── */
+  .screen { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: none; }
+  .screen.active { display: block; }
+  .screen-inner { padding-bottom: 24px; }
 
-    /* ── EXPENSE LIST ── */
-    .list-body { padding: 14px; display: flex; flex-direction: column; gap: 8px; }
-    .date-sep { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 6px 0 2px 2px; }
-    .ex-card { background: var(--surface); border-radius: 14px; padding: 13px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.07); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    .ex-card:active { background: #f9fafb; }
-    .ex-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
-    .ex-info { flex: 1; min-width: 0; }
-    .ex-cat  { font-size: 14px; font-weight: 700; }
-    .ex-note { font-size: 12px; color: var(--muted); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .ex-right { text-align: right; flex-shrink: 0; }
-    .ex-amt  { font-size: 15px; font-weight: 800; }
-    .ex-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-top: 3px; display: inline-block; }
+  /* ── TAB BAR ── */
+  .tabbar {
+    display: flex; background: var(--surface); border-top: 1px solid var(--border);
+    flex-shrink: 0; padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .tab-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 2px; font-size: 9px; font-weight: 700;
+    color: var(--muted); background: none; border: none; cursor: pointer;
+    padding: 10px 0; -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn .ti { font-size: 19px; line-height: 1; }
+  .tab-btn.active { color: var(--hh); }
+  .tab-fab {
+    flex: 1; display: flex; align-items: flex-start; justify-content: center;
+    background: none; border: none; cursor: pointer; padding-top: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .fab {
+    width: 52px; height: 52px; background: var(--hh); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; color: #fff; box-shadow: 0 4px 16px rgba(30,58,95,.4);
+    margin-top: -18px;
+  }
 
-    /* ── STATS ── */
-    .stats-block { padding: 16px; }
-    .stats-block-title { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
-    .stats-section { background: var(--surface); border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-    .ss-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
-    .ss-name { font-size: 15px; font-weight: 800; }
-    .ss-total { font-size: 17px; font-weight: 800; }
-    .bar-row { margin-bottom: 11px; }
-    .bar-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
-    .bar-name { font-weight: 600; }
-    .bar-amt  { font-weight: 700; }
-    .bar-track { background: #F3F4F6; border-radius: 99px; height: 7px; overflow: hidden; }
-    .bar-fill  { height: 100%; border-radius: 99px; transition: width .5s ease; }
+  /* ── PAGE HEADER ── */
+  .pg-hdr { padding: 16px 20px 18px; color: #fff; }
+  .pg-hdr.blue   { background: var(--hh); }
+  .pg-hdr.purple { background: var(--pe); }
+  .mnav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .mnav-btn {
+    background: rgba(255,255,255,.2); border: none; color: #fff;
+    width: 30px; height: 30px; border-radius: 50%; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .mnav-label { font-size: 15px; font-weight: 700; }
+  .hdg-sub { font-size: 11px; opacity: .7; text-transform: uppercase; letter-spacing: .05em; }
+  .hdg-amt { font-size: 30px; font-weight: 800; margin: 4px 0 2px; }
+  .hdg-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .hdg-pill { background: rgba(255,255,255,.18); border-radius: 20px; padding: 4px 11px; font-size: 11px; font-weight: 600; color: rgba(255,255,255,.92); }
 
-    /* ── IMPORT SCREEN ── */
-    .import-body { padding: 20px; }
-    .import-upload-area { border: 2px dashed var(--border); border-radius: 18px; background: var(--surface); padding: 40px 20px; text-align: center; cursor: pointer; -webkit-tap-highlight-color: transparent; margin-bottom: 16px; }
-    .import-upload-area:active { background: #f9fafb; }
-    .import-icon  { font-size: 44px; margin-bottom: 10px; }
-    .import-title { font-size: 17px; font-weight: 700; color: var(--text); }
-    .import-sub   { font-size: 13px; color: var(--muted); margin-top: 6px; }
-    .import-note  { font-size: 12px; color: var(--muted); text-align: center; padding: 0 8px; }
-    .import-progress { text-align: center; padding: 40px 20px; color: var(--muted); }
-    .spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid #E5E7EB; border-top-color: var(--hh); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 10px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+  /* ── EXPENSE LIST ── */
+  .list-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+  .date-sep { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin: 8px 2px 4px; }
+  .ex-card {
+    background: var(--surface); border-radius: 14px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.07); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ex-icon { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ex-info { flex: 1; min-width: 0; }
+  .ex-cat  { font-size: 14px; font-weight: 700; }
+  .ex-note { font-size: 12px; color: var(--muted); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ex-right { text-align: right; flex-shrink: 0; }
+  .ex-amt  { font-size: 14px; font-weight: 800; }
+  .ex-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-top: 3px; display: inline-block; }
 
-    /* review rows */
-    .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-    .review-title  { font-size: 15px; font-weight: 800; }
-    .review-row    { background: var(--surface); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
-    .review-check  { width: 22px; height: 22px; accent-color: var(--hh); cursor: pointer; flex-shrink: 0; }
-    .review-info   { flex: 1; min-width: 0; }
-    .review-desc   { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .review-date   { font-size: 11px; color: var(--muted); margin-top: 2px; }
-    .review-cats   { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
-    .review-amt    { font-size: 14px; font-weight: 800; color: var(--hh); flex-shrink: 0; }
-    .review-edit   { font-size: 13px; cursor: pointer; color: var(--muted); flex-shrink: 0; padding: 4px; }
-    .import-actions { position: sticky; bottom: calc(var(--tab-h) + var(--safe-b) + 8px); display: flex; gap: 10px; padding: 12px 0 0; }
-    .import-btn     { flex: 1; padding: 15px; border: none; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; }
-    .import-btn-main { background: var(--hh); color: #fff; }
-    .import-btn-sec  { background: var(--border); color: var(--muted); }
+  /* ── STATS ── */
+  .stats-block { padding: 14px 16px; }
+  .stats-section { background: var(--surface); border-radius: 16px; padding: 14px; margin-bottom: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .ss-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .ss-name  { font-size: 14px; font-weight: 800; }
+  .ss-total { font-size: 16px; font-weight: 800; }
+  .bar-row  { margin-bottom: 10px; }
+  .bar-top  { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+  .bar-name { font-weight: 600; }
+  .bar-amt  { font-weight: 700; }
+  .bar-track { background: var(--border); border-radius: 99px; height: 7px; overflow: hidden; }
+  .bar-fill  { height: 100%; border-radius: 99px; }
 
-    /* ── SETTINGS ── */
-    .settings-title { font-size: 22px; font-weight: 800; padding: 20px 16px 10px; }
-    .settings-card  { background: var(--surface); margin: 0 16px 14px; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
-    .settings-sec-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 12px 16px 4px; }
-    .settings-row   { display: flex; align-items: center; gap: 10px; padding: 13px 16px; border-bottom: 1px solid var(--border); }
-    .settings-row:last-child { border-bottom: none; }
-    .settings-row-text { flex: 1; }
-    .settings-row-label { font-size: 15px; font-weight: 600; }
-    .settings-row-sub   { font-size: 12px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
-    .s-input { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: monospace; outline: none; max-width: 160px; }
-    .s-input:focus { border-color: var(--hh); }
-    .s-select { padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; outline: none; background: var(--surface); }
-    .s-btn    { padding: 9px 16px; border: none; border-radius: 10px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-    .s-btn-blue  { background: var(--hh); color: #fff; }
-    .s-btn-green { background: #D1FAE5; color: var(--green); }
-    .s-btn-red   { background: #FEE2E2; color: var(--red); }
+  /* ── IMPORT ── */
+  .import-body { padding: 16px; }
+  .import-upload {
+    border: 2px dashed var(--border); border-radius: 18px;
+    background: var(--surface); padding: 36px 20px; text-align: center;
+    cursor: pointer; margin-bottom: 14px;
+  }
+  .import-icon  { font-size: 40px; margin-bottom: 8px; }
+  .import-title { font-size: 16px; font-weight: 700; }
+  .import-sub   { font-size: 13px; color: var(--muted); margin-top: 5px; }
+  .import-tip   { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.5; }
+  .import-progress { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid var(--border); border-top-color: var(--hh); border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .review-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .review-title { font-size: 14px; font-weight: 800; }
+  .review-row { background: var(--surface); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+  .review-check { width: 20px; height: 20px; accent-color: var(--hh); cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+  .review-info { flex: 1; min-width: 0; }
+  .review-desc { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .review-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
+  .review-cats { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .review-amt  { font-size: 13px; font-weight: 800; color: var(--hh); flex-shrink: 0; }
+  .review-edit { font-size: 14px; cursor: pointer; color: var(--muted); padding: 2px 4px; flex-shrink: 0; }
+  .import-actions { display: flex; gap: 10px; padding-top: 12px; }
+  .imp-btn { flex: 1; padding: 14px; border: none; border-radius: 14px; font-size: 14px; font-weight: 800; cursor: pointer; }
+  .imp-btn-main { background: var(--hh); color: #fff; }
+  .imp-btn-sec  { background: var(--border); color: var(--muted); }
 
-    /* ── ADD/EDIT MODAL ── */
-    .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100; align-items: flex-end; }
-    .overlay.open { display: flex; }
-    .sheet { background: var(--surface); border-radius: 24px 24px 0 0; width: 100%; max-height: 93dvh; overflow-y: auto; padding: 0 20px; padding-bottom: calc(28px + var(--safe-b)); animation: up .22s ease; }
-    @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .sheet-handle { width: 40px; height: 4px; background: #D1D5DB; border-radius: 2px; margin: 12px auto 18px; }
-    .sheet-title  { font-size: 18px; font-weight: 800; margin-bottom: 18px; }
+  /* ── SETTINGS ── */
+  .settings-pg-title { font-size: 22px; font-weight: 800; padding: 18px 16px 8px; }
+  .s-card { background: var(--surface); margin: 0 16px 12px; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .s-sec-title { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: 12px 16px 2px; }
+  .s-row { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .s-row:last-child { border-bottom: none; }
+  .s-row-text { flex: 1; }
+  .s-row-label { font-size: 14px; font-weight: 600; }
+  .s-row-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  .s-input  { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; font-family: monospace; outline: none; background: var(--surface); color: var(--text); flex: 1; }
+  .s-input:focus { border-color: var(--hh); }
+  .s-select { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 13px; outline: none; background: var(--surface); color: var(--text); }
+  .s-btn { padding: 8px 14px; border: none; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .s-btn-blue  { background: var(--hh); color: #fff; }
+  .s-btn-green { background: #D1FAE5; color: var(--green); }
+  .s-btn-red   { background: #FEE2E2; color: var(--red); }
 
-    .amt-row { display: flex; align-items: center; gap: 8px; background: #EEF2FF; border-radius: 14px; padding: 14px 18px; margin-bottom: 18px; }
-    .curr-lbl { font-size: 16px; font-weight: 800; color: var(--hh); flex-shrink: 0; }
-    .amt-inp  { flex: 1; background: none; border: none; font-size: 32px; font-weight: 800; color: var(--hh); outline: none; min-width: 0; width: 100%; }
-    .amt-inp::placeholder { color: #A5B4FC; }
+  /* ── MODAL ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100; align-items: flex-end; }
+  .overlay.open { display: flex; }
+  .sheet {
+    background: var(--surface); border-radius: 24px 24px 0 0; width: 100%;
+    max-height: 90vh; overflow-y: auto; padding: 0 20px;
+    padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    animation: up .22s ease;
+  }
+  @keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .sheet-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 10px auto 16px; }
+  .sheet-title  { font-size: 17px; font-weight: 800; margin-bottom: 16px; }
+  .sec-lbl { font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+  .amt-row { display: flex; align-items: center; gap: 8px; background: #EEF2FF; border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; }
+  .curr-lbl { font-size: 15px; font-weight: 800; color: var(--hh); flex-shrink: 0; }
+  .amt-inp { flex: 1; background: none; border: none; font-size: 30px; font-weight: 800; color: var(--hh); outline: none; min-width: 0; width: 100%; }
+  .amt-inp::placeholder { color: #A5B4FC; }
+  .main-toggle { display: flex; gap: 10px; margin-bottom: 16px; }
+  .main-btn { flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 14px; background: var(--surface); font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--text); -webkit-tap-highlight-color: transparent; }
+  .main-btn.sel-hh { background: var(--hh-l); border-color: var(--hh-m); color: var(--hh); }
+  .main-btn.sel-pe { background: var(--pe-l); border-color: var(--pe-m); color: var(--pe); }
+  .sub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 16px; }
+  .sub-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px; background: var(--bg); border: 2px solid transparent; border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .sub-btn .se { font-size: 18px; }
+  .sub-btn .sn { font-size: 9px; font-weight: 700; color: var(--muted); text-align: center; line-height: 1.2; }
+  .sub-btn.sel-hh { background: var(--hh-l); border-color: var(--hh-m); }
+  .sub-btn.sel-hh .sn { color: var(--hh); }
+  .sub-btn.sel-pe { background: var(--pe-l); border-color: var(--pe-m); }
+  .sub-btn.sel-pe .sn { color: var(--pe); }
+  .txt-inp { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 14px; font-family: inherit; outline: none; margin-bottom: 12px; background: var(--surface); color: var(--text); }
+  .txt-inp:focus { border-color: var(--hh); }
+  .photo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .photo-lbl { display: flex; align-items: center; gap: 6px; padding: 9px 14px; background: var(--bg); border: 1.5px dashed #A5B4FC; border-radius: 12px; font-size: 12px; font-weight: 700; color: var(--pe); cursor: pointer; }
+  .photo-prev { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; display: none; }
+  .ai-tag { font-size: 11px; color: var(--pe-m); display: none; }
+  .action-row { display: flex; gap: 10px; }
+  .save-btn { flex: 1; padding: 15px; background: var(--hh); color: #fff; border: none; border-radius: 14px; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .save-btn.purple { background: var(--pe); }
+  .del-btn  { padding: 15px 17px; background: #FEE2E2; color: var(--red); border: none; border-radius: 14px; font-size: 18px; cursor: pointer; }
 
-    .sec-lbl { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
-    .main-toggle { display: flex; gap: 10px; margin-bottom: 18px; }
-    .main-btn { flex: 1; padding: 13px; border: 2px solid var(--border); border-radius: 14px; background: none; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; -webkit-tap-highlight-color: transparent; }
-    .main-btn.sel-hh { background: var(--hh-l); border-color: var(--hh-m); color: var(--hh); }
-    .main-btn.sel-pe { background: var(--pe-l); border-color: var(--pe-m); color: var(--pe); }
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+  .empty-i { font-size: 44px; margin-bottom: 10px; }
+  .empty-t { font-size: 16px; font-weight: 700; color: var(--text); }
+  .empty-s { font-size: 13px; margin-top: 5px; }
 
-    .sub-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
-    .sub-btn  { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; background: var(--bg); border: 2px solid transparent; border-radius: 12px; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    .sub-btn .se { font-size: 20px; }
-    .sub-btn .sn { font-size: 10px; font-weight: 600; color: var(--muted); text-align: center; line-height: 1.2; }
-    .sub-btn.sel-hh { background: var(--hh-l); border-color: var(--hh-m); }
-    .sub-btn.sel-hh .sn { color: var(--hh); }
-    .sub-btn.sel-pe { background: var(--pe-l); border-color: var(--pe-m); }
-    .sub-btn.sel-pe .sn { color: var(--pe); }
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #1F2937; color: #fff; padding: 9px 18px; border-radius: 24px; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .2s; z-index: 300; white-space: nowrap; pointer-events: none; }
+  .toast.show { opacity: 1; }
+</style>
 
-    .txt-inp  { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; font-family: inherit; outline: none; margin-bottom: 14px; background: var(--surface); }
-    .txt-inp:focus { border-color: var(--hh); }
-    .photo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
-    .photo-lbl { display: flex; align-items: center; gap: 7px; padding: 10px 16px; background: var(--bg); border: 1.5px dashed #A5B4FC; border-radius: 12px; font-size: 13px; font-weight: 600; color: #6D28D9; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-    .photo-prev { width: 44px; height: 44px; border-radius: 10px; object-fit: cover; display: none; }
-    .ai-tag { font-size: 11px; color: var(--pe-m); display: none; }
-
-    .action-row { display: flex; gap: 10px; }
-    .save-btn { flex: 1; padding: 16px; background: var(--hh); color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 800; cursor: pointer; }
-    .save-btn.purple { background: var(--pe); }
-    .del-btn  { padding: 16px 18px; background: #FEE2E2; color: var(--red); border: none; border-radius: 14px; font-size: 20px; cursor: pointer; }
-
-    /* ── EMPTY ── */
-    .empty { text-align: center; padding: 56px 24px; color: var(--muted); }
-    .empty-i { font-size: 48px; margin-bottom: 12px; }
-    .empty-t { font-size: 17px; font-weight: 700; color: #374151; }
-    .empty-s { font-size: 13px; margin-top: 6px; }
-
-    /* ── TOAST ── */
-    .toast { position: fixed; bottom: calc(var(--tab-h) + var(--safe-b) + 10px); left: 50%; transform: translateX(-50%); background: #1F2937; color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 13px; font-weight: 700; opacity: 0; transition: opacity .2s; z-index: 300; white-space: nowrap; pointer-events: none; }
-    .toast.show { opacity: 1; }
-
-    /* ── PRINT / PDF ── */
-    @media print {
-      body { overflow: visible; background: #fff; }
-      #app, .tabbar, .overlay, .toast { display: none !important; }
-      #print-area { display: block !important; }
-    }
-    #print-area {
-      display: none;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      padding: 32px;
-      color: #1F2937;
-    }
-    .pr-title  { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
-    .pr-sub    { font-size: 14px; color: #6B7280; margin-bottom: 24px; }
-    .pr-summary { display: flex; gap: 16px; margin-bottom: 28px; }
-    .pr-box { flex: 1; border-radius: 12px; padding: 16px; }
-    .pr-box-hh { background: #DBEAFE; }
-    .pr-box-pe { background: #EDE9FE; }
-    .pr-box-tot{ background: #F0FDF4; }
-    .pr-box-label { font-size: 12px; font-weight: 700; color: #6B7280; text-transform: uppercase; }
-    .pr-box-amt   { font-size: 22px; font-weight: 800; margin-top: 4px; }
-    .pr-section-title { font-size: 16px; font-weight: 800; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 2px solid #E5E7EB; }
-    .pr-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    .pr-table th { background: #F8FAFC; padding: 8px 12px; text-align: left; font-weight: 700; color: #6B7280; border-bottom: 1px solid #E5E7EB; }
-    .pr-table td { padding: 8px 12px; border-bottom: 1px solid #F3F4F6; }
-    .pr-table tr:last-child td { border-bottom: none; }
-  </style>
-</head>
-<body>
 <div id="app">
 
-  <!-- ══ HOME ══ -->
+  <!-- HOME -->
   <div class="screen active" id="screen-home">
-    <div class="pg-header blue">
-      <div class="mnav">
-        <button class="mnav-btn" onclick="chM('home',-1)">‹</button>
-        <span class="mnav-label" id="home-mlabel"></span>
-        <button class="mnav-btn" onclick="chM('home',1)">›</button>
+    <div class="screen-inner">
+      <div class="pg-hdr blue">
+        <div class="mnav">
+          <button class="mnav-btn" onclick="chM('home',-1)">‹</button>
+          <span class="mnav-label" id="home-mlabel"></span>
+          <button class="mnav-btn" onclick="chM('home',1)">›</button>
+        </div>
+        <div class="hdg-sub">Total Spent</div>
+        <div class="hdg-amt" id="home-total"></div>
+        <div class="hdg-pills" id="home-pills"></div>
       </div>
-      <div class="hdg-sub">Total Spent</div>
-      <div class="hdg-amt" id="home-total"></div>
-      <div class="hdg-row" id="home-pills"></div>
+      <div class="list-body" id="home-list"></div>
     </div>
-    <div class="list-body" id="home-list"></div>
   </div>
 
-  <!-- ══ STATS ══ -->
+  <!-- STATS -->
   <div class="screen" id="screen-stats">
-    <div class="pg-header blue">
-      <div class="mnav">
-        <button class="mnav-btn" onclick="chM('stats',-1)">‹</button>
-        <span class="mnav-label" id="stats-mlabel"></span>
-        <button class="mnav-btn" onclick="chM('stats',1)">›</button>
+    <div class="screen-inner">
+      <div class="pg-hdr blue">
+        <div class="mnav">
+          <button class="mnav-btn" onclick="chM('stats',-1)">‹</button>
+          <span class="mnav-label" id="stats-mlabel"></span>
+          <button class="mnav-btn" onclick="chM('stats',1)">›</button>
+        </div>
+        <div class="hdg-sub">Monthly Breakdown</div>
+        <div class="hdg-amt" id="stats-total"></div>
       </div>
-      <div class="hdg-sub">Monthly Breakdown</div>
-      <div class="hdg-amt" id="stats-total"></div>
+      <div class="stats-block" id="stats-body"></div>
     </div>
-    <div class="stats-block" id="stats-body"></div>
   </div>
 
-  <!-- ══ IMPORT ══ -->
+  <!-- IMPORT -->
   <div class="screen" id="screen-import">
-    <div class="pg-header blue" style="padding-bottom:16px">
-      <div class="hdg-sub" style="margin-top:max(0px,var(--safe-t))">Import</div>
-      <div style="font-size:20px;font-weight:800;color:#fff;margin-top:4px">Bank Statement</div>
-    </div>
-    <div class="import-body" id="import-body">
-      <label class="import-upload-area" for="stmt-input">
-        <div class="import-icon">🏦</div>
-        <div class="import-title">Upload Statement Photo</div>
-        <div class="import-sub">Screenshot or photo of your bank statement</div>
-      </label>
-      <input type="file" id="stmt-input" accept="image/*" style="display:none" onchange="handleStatement(this)">
-      <p class="import-note">💡 Take a screenshot of your bank statement (transactions page) and upload it. The AI will extract all expenses automatically.</p>
+    <div class="screen-inner">
+      <div class="pg-hdr blue" style="padding-bottom:14px">
+        <div class="hdg-sub">Import</div>
+        <div style="font-size:18px;font-weight:800;color:#fff;margin-top:4px">Bank Statement</div>
+      </div>
+      <div class="import-body" id="import-body">
+        <label class="import-upload" for="stmt-input">
+          <div class="import-icon">🏦</div>
+          <div class="import-title">Upload Statement Photo</div>
+          <div class="import-sub">Screenshot of your bank transactions</div>
+        </label>
+        <input type="file" id="stmt-input" accept="image/*" style="display:none" onchange="handleStatement(this)">
+        <p class="import-tip">💡 Take a screenshot of your bank statement and upload it. The AI will extract all transactions automatically. You review before anything is saved.</p>
+      </div>
     </div>
   </div>
 
-  <!-- ══ SETTINGS ══ -->
+  <!-- SETTINGS -->
   <div class="screen" id="screen-settings">
-    <div class="settings-title">⚙️ Settings</div>
-
-    <div class="settings-card">
-      <div class="settings-sec-title">Currency</div>
-      <div class="settings-row">
-        <div class="settings-row-text"><div class="settings-row-label">Currency</div></div>
-        <select class="s-select" id="curr-select" onchange="saveCurr()">
-          <option value="PKR">PKR – Pakistani Rupee</option>
-          <option value="AED">AED – UAE Dirham</option>
-          <option value="USD">USD – US Dollar</option>
-          <option value="GBP">GBP – British Pound</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <div class="settings-sec-title">AI Reading (optional)</div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-label">Anthropic API Key</div>
-          <div class="settings-row-sub">Enables auto-reading of receipts and bank statements. Get at console.anthropic.com → API Keys. Stored on your phone only.</div>
+    <div class="screen-inner">
+      <div class="settings-pg-title">⚙️ Settings</div>
+      <div class="s-card">
+        <div class="s-sec-title">Currency</div>
+        <div class="s-row">
+          <div class="s-row-text"><div class="s-row-label">Currency</div></div>
+          <select class="s-select" id="curr-select" onchange="saveCurr()">
+            <option value="PKR">PKR – Rupee</option>
+            <option value="AED">AED – Dirham</option>
+            <option value="USD">USD – Dollar</option>
+            <option value="GBP">GBP – Pound</option>
+          </select>
         </div>
       </div>
-      <div class="settings-row">
-        <input class="s-input" id="key-input" type="password" placeholder="sk-ant-..." style="max-width:100%;flex:1">
-        <button class="s-btn s-btn-blue" onclick="saveKey()">Save</button>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <div class="settings-sec-title">Export</div>
-      <div class="settings-row">
-        <div class="settings-row-text"><div class="settings-row-label">Export to Excel</div><div class="settings-row-sub">All expenses as .xlsx file</div></div>
-        <button class="s-btn s-btn-green" onclick="exportExcel()">Excel</button>
-      </div>
-      <div class="settings-row">
-        <div class="settings-row-text"><div class="settings-row-label">Export PDF Report</div><div class="settings-row-sub">Monthly report — use Print → Save as PDF</div></div>
-        <button class="s-btn s-btn-blue" onclick="exportPDF()">PDF</button>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <div class="settings-sec-title">Data</div>
-      <div class="settings-row">
-        <div class="settings-row-text"><div class="settings-row-label">Clear All Data</div><div class="settings-row-sub">Permanently delete all expenses</div></div>
-        <button class="s-btn s-btn-red" onclick="clearAll()">Clear</button>
-      </div>
-    </div>
-
-    <div class="settings-card">
-      <div class="settings-sec-title">Add to Home Screen</div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-label">iPhone (Safari)</div>
-          <div class="settings-row-sub">Tap Share → "Add to Home Screen"</div>
+      <div class="s-card">
+        <div class="s-sec-title">AI (optional)</div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">Anthropic API Key</div><div class="s-row-sub">Enables receipt reading &amp; statement import. Get at console.anthropic.com → API Keys. Stored on your phone only.</div></div></div>
+        <div class="s-row">
+          <input class="s-input" id="key-input" type="password" placeholder="sk-ant-...">
+          <button class="s-btn s-btn-blue" onclick="saveKey()">Save</button>
         </div>
       </div>
-      <div class="settings-row">
-        <div class="settings-row-text">
-          <div class="settings-row-label">Android (Chrome)</div>
-          <div class="settings-row-sub">Tap ⋮ menu → "Add to Home Screen"</div>
-        </div>
+      <div class="s-card">
+        <div class="s-sec-title">Export</div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">Excel</div><div class="s-row-sub">All expenses + monthly summary</div></div><button class="s-btn s-btn-green" onclick="exportExcel()">Excel</button></div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">PDF Report</div><div class="s-row-sub">Opens print view → Save as PDF</div></div><button class="s-btn s-btn-blue" onclick="exportPDF()">PDF</button></div>
+      </div>
+      <div class="s-card">
+        <div class="s-sec-title">Data</div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">Clear All Data</div><div class="s-row-sub">Permanently deletes all expenses</div></div><button class="s-btn s-btn-red" onclick="clearAll()">Clear</button></div>
+      </div>
+      <div class="s-card">
+        <div class="s-sec-title">Save to Home Screen</div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">iPhone</div><div class="s-row-sub">Safari → Share → Add to Home Screen</div></div></div>
+        <div class="s-row"><div class="s-row-text"><div class="s-row-label">Android</div><div class="s-row-sub">Chrome ⋮ menu → Add to Home Screen</div></div></div>
       </div>
     </div>
   </div>
 
-  <!-- ══ TAB BAR ══ -->
+  <!-- TAB BAR -->
   <div class="tabbar">
     <button class="tab-btn active" id="tab-home" onclick="showTab('home')"><span class="ti">🏠</span><span>Home</span></button>
     <button class="tab-btn" id="tab-stats" onclick="showTab('stats')"><span class="ti">📊</span><span>Stats</span></button>
-    <button class="tab-fab" onclick="openAdd()"><div class="fab">+</div></button>
+    <button class="tab-fab" onclick="openAdd()"><div class="fab">＋</div></button>
     <button class="tab-btn" id="tab-import" onclick="showTab('import')"><span class="ti">🏦</span><span>Import</span></button>
     <button class="tab-btn" id="tab-settings" onclick="showTab('settings')"><span class="ti">⚙️</span><span>Settings</span></button>
   </div>
 </div>
 
-<!-- ══ ADD/EDIT MODAL ══ -->
-<div class="overlay" id="add-overlay" onclick="overlayClick(event,'add-overlay')">
+<!-- ADD/EDIT MODAL -->
+<div class="overlay" id="add-overlay" onclick="overlayClick(event)">
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title" id="modal-title">Add Expense</div>
-
     <div class="sec-lbl">Amount</div>
     <div class="amt-row">
       <span class="curr-lbl" id="curr-lbl">PKR</span>
       <input class="amt-inp" id="amt" type="number" inputmode="decimal" placeholder="0" min="0">
     </div>
-
     <div class="sec-lbl">Category</div>
     <div class="main-toggle">
       <button class="main-btn" id="btn-hh" onclick="setMain('Household')">🏠 Household</button>
       <button class="main-btn" id="btn-pe" onclick="setMain('Personal')">👤 Personal</button>
     </div>
     <div class="sub-grid" id="sub-grid"></div>
-
     <div class="sec-lbl">Note (optional)</div>
-    <input class="txt-inp" id="note" type="text" placeholder="e.g. Lunch at Café, LESCO bill…">
-
+    <input class="txt-inp" id="note" type="text" placeholder="e.g. LESCO bill, lunch…">
     <div class="sec-lbl">Date</div>
     <input class="txt-inp" id="date-inp" type="date">
-
     <div class="sec-lbl">Photo (optional)</div>
     <div class="photo-row">
       <label class="photo-lbl" for="ph-input">📷 Choose Photo</label>
@@ -365,7 +343,6 @@
       <img id="ph-prev" class="photo-prev" alt="">
       <span class="ai-tag" id="ai-tag">⏳ Reading…</span>
     </div>
-
     <div class="action-row">
       <button class="save-btn" id="save-btn" onclick="saveExpense()">Save</button>
       <button class="del-btn"  id="del-btn"  onclick="deleteExpense()" style="display:none">🗑</button>
@@ -373,174 +350,113 @@
   </div>
 </div>
 
-<!-- ── TOAST ── -->
 <div class="toast" id="toast"></div>
 
-<!-- ── PRINT AREA (hidden on screen, visible when printing) ── -->
-<div id="print-area"></div>
-
 <script>
-// ════════════════ CATEGORIES ════════════════
 const CATS = {
   Household: {
-    emoji: '🏠', color: '#1E3A5F', light: '#DBEAFE',
-    subs: [
-      {n:'Electricity',e:'⚡'},{n:'Gas',e:'🔥'},{n:'Water',e:'💧'},
-      {n:'Internet',e:'🌐'},{n:'Phone',e:'📱'},{n:'Salary',e:'💼'},
-      {n:'Club',e:'🏌️'},{n:'Rent',e:'🏠'},{n:'Maintenance',e:'🔧'},
-      {n:'Groceries',e:'🛒'},{n:'Other',e:'🏡'}
-    ]
+    emoji:'🏠', color:'#1E3A5F', light:'#DBEAFE',
+    subs:[{n:'Electricity',e:'⚡'},{n:'Gas',e:'🔥'},{n:'Water',e:'💧'},{n:'Internet',e:'🌐'},{n:'Phone',e:'📱'},{n:'Salary',e:'💼'},{n:'Club',e:'🏌️'},{n:'Rent',e:'🏠'},{n:'Maintenance',e:'🔧'},{n:'Groceries',e:'🛒'},{n:'Other',e:'🏡'}]
   },
   Personal: {
-    emoji: '👤', color: '#6D28D9', light: '#EDE9FE',
-    subs: [
-      {n:'Dining',e:'🍽️'},{n:'Coffee',e:'☕'},{n:'Beauty',e:'💄'},
-      {n:'Fashion',e:'👗'},{n:'Health',e:'🏥'},{n:'Transport',e:'🚗'},
-      {n:'Salik',e:'🛣️'},{n:'Petrol',e:'⛽'},{n:'Shopping',e:'🛍️'},
-      {n:'Fun',e:'🎭'},{n:'Gifts',e:'🎁'},{n:'Education',e:'📚'},
-      {n:'Travel',e:'✈️'},{n:'Other',e:'💳'}
-    ]
+    emoji:'👤', color:'#6D28D9', light:'#EDE9FE',
+    subs:[{n:'Dining',e:'🍽️'},{n:'Coffee',e:'☕'},{n:'Beauty',e:'💄'},{n:'Fashion',e:'👗'},{n:'Health',e:'🏥'},{n:'Transport',e:'🚗'},{n:'Salik',e:'🛣️'},{n:'Petrol',e:'⛽'},{n:'Shopping',e:'🛍️'},{n:'Fun',e:'🎭'},{n:'Gifts',e:'🎁'},{n:'Education',e:'📚'},{n:'Travel',e:'✈️'},{n:'Other',e:'💳'}]
   }
 };
 
-// ════════════════ STORAGE ════════════════
-const SK = 'expenses_v2';
-function load() { try { return JSON.parse(localStorage.getItem(SK)||'[]'); } catch{ return []; } }
-function store(arr) { try { localStorage.setItem(SK, JSON.stringify(arr)); } catch{} }
+const SK='expenses_v2';
+function load(){try{return JSON.parse(localStorage.getItem(SK)||'[]');}catch{return[];}}
+function store(a){try{localStorage.setItem(SK,JSON.stringify(a));}catch{}}
+function getCurr(){return localStorage.getItem('currency')||'PKR';}
+function c(n){return getCurr()+' '+fmt(n);}
+function fmt(n){return Math.round(n).toLocaleString('en');}
+function today(){return new Date().toISOString().split('T')[0];}
 
-// ════════════════ STATE ════════════════
-let hMonth=0, sMonth=0;
-let editId=null, selMain='Personal', selSub=null;
-let importPending=[];
+let hMo=0,sMo=0,editId=null,selMain='Personal',selSub=null,importPending=[];
 
-// ════════════════ CURRENCY ════════════════
-function getCurr() { return localStorage.getItem('currency')||'PKR'; }
-function saveCurr() {
-  localStorage.setItem('currency', document.getElementById('curr-select').value);
-  document.getElementById('curr-lbl').textContent = getCurr();
-  renderHome(); renderStats();
-}
-function c(n) { return getCurr()+' '+fmt(n); }
-
-// ════════════════ MONTH HELPERS ════════════════
-function monthRange(off) {
-  const d = new Date(); d.setDate(1); d.setMonth(d.getMonth()+off);
-  const y=d.getFullYear(), m=d.getMonth();
+function monthRange(off){
+  const d=new Date();d.setDate(1);d.setMonth(d.getMonth()+off);
+  const y=d.getFullYear(),m=d.getMonth();
   const label=d.toLocaleString('default',{month:'long',year:'numeric'});
-  const pad=v=>String(v).padStart(2,'0');
-  return { label, start:`${y}-${pad(m+1)}-01`, end:`${y}-${pad(m+1)}-31` };
+  const p=v=>String(v).padStart(2,'0');
+  return{label,start:`${y}-${p(m+1)}-01`,end:`${y}-${p(m+1)}-31`};
 }
-function chM(scr, delta) {
-  if(scr==='home'){ hMonth+=delta; if(hMonth>0)hMonth=0; renderHome(); }
-  else             { sMonth+=delta; if(sMonth>0)sMonth=0; renderStats(); }
-}
+function chM(s,d){if(s==='home'){hMo+=d;if(hMo>0)hMo=0;renderHome();}else{sMo+=d;if(sMo>0)sMo=0;renderStats();}}
 
-// ════════════════ TABS ════════════════
-function showTab(id) {
+function showTab(id){
   ['home','stats','import','settings'].forEach(t=>{
     document.getElementById('screen-'+t).classList.toggle('active',t===id);
     const tb=document.getElementById('tab-'+t);
-    if(tb) tb.classList.toggle('active',t===id);
+    if(tb)tb.classList.toggle('active',t===id);
   });
-  if(id==='home')     renderHome();
-  if(id==='stats')    renderStats();
-  if(id==='settings') renderSettingsPage();
+  if(id==='home')renderHome();
+  if(id==='stats')renderStats();
+  if(id==='settings')renderSettingsPage();
 }
 
-// ════════════════ HOME ════════════════
-function renderHome() {
-  const {label,start,end} = monthRange(hMonth);
-  document.getElementById('home-mlabel').textContent = label;
-  const all = load();
-  const month = all.filter(e=>e.date>=start && e.date<=end);
-  const total = month.reduce((s,e)=>s+(e.amount||0),0);
-  const hhTot = month.filter(e=>e.main==='Household').reduce((s,e)=>s+(e.amount||0),0);
-  const peTot = month.filter(e=>e.main==='Personal').reduce((s,e)=>s+(e.amount||0),0);
-
-  document.getElementById('home-total').textContent = c(total);
-  document.getElementById('home-pills').innerHTML =
-    (hhTot?`<span class="hdg-pill">🏠 ${c(hhTot)}</span>`:'') +
-    (peTot?`<span class="hdg-pill">👤 ${c(peTot)}</span>`:'');
-
-  const listEl = document.getElementById('home-list');
-  if(!month.length) {
-    listEl.innerHTML = `<div class="empty"><div class="empty-i">💸</div><div class="empty-t">No expenses for ${label}</div><div class="empty-s">Tap + to add one</div></div>`;
-    return;
-  }
+function renderHome(){
+  const{label,start,end}=monthRange(hMo);
+  document.getElementById('home-mlabel').textContent=label;
+  const all=load(),month=all.filter(e=>e.date>=start&&e.date<=end);
+  const total=month.reduce((s,e)=>s+(e.amount||0),0);
+  const hh=month.filter(e=>e.main==='Household').reduce((s,e)=>s+(e.amount||0),0);
+  const pe=month.filter(e=>e.main==='Personal').reduce((s,e)=>s+(e.amount||0),0);
+  document.getElementById('home-total').textContent=c(total);
+  document.getElementById('home-pills').innerHTML=(hh?`<span class="hdg-pill">🏠 ${c(hh)}</span>`:'')+(pe?`<span class="hdg-pill">👤 ${c(pe)}</span>`:'');
+  const listEl=document.getElementById('home-list');
+  if(!month.length){listEl.innerHTML=`<div class="empty"><div class="empty-i">💸</div><div class="empty-t">No expenses for ${label}</div><div class="empty-s">Tap + to add one</div></div>`;return;}
   const byDate={};
-  month.forEach(e=>{ (byDate[e.date]=byDate[e.date]||[]).push(e); });
+  month.forEach(e=>{(byDate[e.date]=byDate[e.date]||[]).push(e);});
   const dates=Object.keys(byDate).sort((a,b)=>b.localeCompare(a));
-  listEl.innerHTML = dates.map(d=>{
-    const dlabel=dateLabel(d);
+  listEl.innerHTML=dates.map(d=>{
+    const dl=dateLabel(d);
     const rows=byDate[d].map(e=>{
-      const cat=CATS[e.main]; const sub=(cat.subs.find(s=>s.n===e.sub)||{});
+      const cat=CATS[e.main],sub=cat.subs.find(s=>s.n===e.sub)||{};
       const col=e.main==='Household'?'var(--hh-l)':'var(--pe-l)';
-      const tc =e.main==='Household'?'var(--hh)'  :'var(--pe)';
-      const bc =e.main==='Household'?'var(--hh-l)':'var(--pe-l)';
-      const btc=e.main==='Household'?'var(--hh)'  :'var(--pe)';
-      return `<div class="ex-card" onclick="openEdit(${e.id})">
-        <div class="ex-icon" style="background:${col}"><span>${sub.e||cat.emoji}</span></div>
-        <div class="ex-info">
-          <div class="ex-cat">${e.sub||e.main}</div>
-          ${e.note?`<div class="ex-note">${e.note}</div>`:''}
-        </div>
-        <div class="ex-right">
-          <div class="ex-amt" style="color:${tc}">${c(e.amount)}</div>
-          <span class="ex-badge" style="background:${bc};color:${btc}">${e.main}</span>
-        </div>
+      const tc=e.main==='Household'?'var(--hh)':'var(--pe)';
+      return`<div class="ex-card" onclick="openEdit(${e.id})">
+        <div class="ex-icon" style="background:${col}">${sub.e||cat.emoji}</div>
+        <div class="ex-info"><div class="ex-cat">${e.sub||e.main}</div>${e.note?`<div class="ex-note">${e.note}</div>`:''}</div>
+        <div class="ex-right"><div class="ex-amt" style="color:${tc}">${c(e.amount)}</div><span class="ex-badge" style="background:${col};color:${tc}">${e.main}</span></div>
       </div>`;
     }).join('');
-    return `<div class="date-sep">${dlabel}</div>${rows}`;
+    return`<div class="date-sep">${dl}</div>${rows}`;
   }).join('');
 }
 
-function dateLabel(ds) {
-  const d=new Date(ds+'T00:00:00'), t=new Date(); t.setHours(0,0,0,0);
-  const y=new Date(t); y.setDate(y.getDate()-1);
-  if(d.getTime()===t.getTime()) return 'Today';
-  if(d.getTime()===y.getTime()) return 'Yesterday';
+function dateLabel(ds){
+  const d=new Date(ds+'T00:00:00'),t=new Date();t.setHours(0,0,0,0);
+  const y=new Date(t);y.setDate(y.getDate()-1);
+  if(d.getTime()===t.getTime())return'Today';
+  if(d.getTime()===y.getTime())return'Yesterday';
   return d.toLocaleDateString('default',{weekday:'long',day:'numeric',month:'short'});
 }
 
-// ════════════════ STATS ════════════════
-function renderStats() {
-  const {label,start,end}=monthRange(sMonth);
+function renderStats(){
+  const{label,start,end}=monthRange(sMo);
   document.getElementById('stats-mlabel').textContent=label;
-  const all=load(), month=all.filter(e=>e.date>=start&&e.date<=end);
+  const all=load(),month=all.filter(e=>e.date>=start&&e.date<=end);
   const total=month.reduce((s,e)=>s+(e.amount||0),0);
   document.getElementById('stats-total').textContent=c(total);
-
   let html='';
   ['Household','Personal'].forEach(main=>{
-    const cat=CATS[main];
-    const subset=month.filter(e=>e.main===main);
+    const cat=CATS[main],subset=month.filter(e=>e.main===main);
     const tot=subset.reduce((s,e)=>s+(e.amount||0),0);
-    if(!tot) return;
-    const byS={};
-    subset.forEach(e=>{ byS[e.sub]=(byS[e.sub]||0)+e.amount; });
+    if(!tot)return;
+    const byS={};subset.forEach(e=>{byS[e.sub]=(byS[e.sub]||0)+e.amount;});
     const sorted=Object.entries(byS).sort((a,b)=>b[1]-a[1]);
-    const maxV=sorted.length?sorted[0][1]:1;
+    const maxV=sorted[0][1];
     const col=main==='Household'?'var(--hh-m)':'var(--pe-m)';
     html+=`<div class="stats-section">
-      <div class="ss-header">
-        <span class="ss-name">${cat.emoji} ${main}</span>
-        <span class="ss-total" style="color:${col}">${c(tot)}</span>
-      </div>
-      ${sorted.map(([sub,amt])=>{
-        const pct=Math.round(amt/maxV*100);
-        return `<div class="bar-row">
-          <div class="bar-top"><span class="bar-name">${sub}</span><span class="bar-amt" style="color:${col}">${c(amt)}</span></div>
-          <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${col}"></div></div>
-        </div>`;
-      }).join('')}
+      <div class="ss-header"><span class="ss-name">${cat.emoji} ${main}</span><span class="ss-total" style="color:${col}">${c(tot)}</span></div>
+      ${sorted.map(([sub,amt])=>`<div class="bar-row"><div class="bar-top"><span class="bar-name">${sub}</span><span class="bar-amt" style="color:${col}">${c(amt)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(amt/maxV*100)}%;background:${col}"></div></div></div>`).join('')}
     </div>`;
   });
   document.getElementById('stats-body').innerHTML=html||`<div class="empty"><div class="empty-i">📊</div><div class="empty-t">No data for ${label}</div></div>`;
 }
 
-// ════════════════ ADD / EDIT ════════════════
-function openAdd() {
-  editId=null; selMain='Personal'; selSub=null;
+function openAdd(){
+  editId=null;selMain='Personal';selSub=null;
   document.getElementById('modal-title').textContent='Add Expense';
   document.getElementById('amt').value='';
   document.getElementById('note').value='';
@@ -556,9 +472,9 @@ function openAdd() {
   setTimeout(()=>document.getElementById('amt').focus(),300);
 }
 
-function openEdit(id) {
-  const e=load().find(x=>x.id===id); if(!e) return;
-  editId=id; selMain=e.main; selSub=e.sub;
+function openEdit(id){
+  const e=load().find(x=>x.id===id);if(!e)return;
+  editId=id;selMain=e.main;selSub=e.sub;
   document.getElementById('modal-title').textContent='Edit Expense';
   document.getElementById('amt').value=e.amount;
   document.getElementById('note').value=e.note||'';
@@ -568,184 +484,132 @@ function openEdit(id) {
   document.getElementById('del-btn').style.display='block';
   document.getElementById('save-btn').className='save-btn'+(e.main==='Personal'?' purple':'');
   document.getElementById('curr-lbl').textContent=getCurr();
-  setMain(e.main, true);
-  highlightSub();
+  setMain(e.main,true);buildSubGrid();
   document.getElementById('add-overlay').classList.add('open');
 }
 
-function closeModal() { document.getElementById('add-overlay').classList.remove('open'); }
-function overlayClick(ev, id) { if(ev.target===document.getElementById(id)) closeModal(); }
+function closeModal(){document.getElementById('add-overlay').classList.remove('open');}
+function overlayClick(ev){if(ev.target===document.getElementById('add-overlay'))closeModal();}
 
-function setMain(m, skipSub) {
-  selMain=m;
-  if(!skipSub) selSub=null;
+function setMain(m,skip){
+  selMain=m;if(!skip)selSub=null;
   document.getElementById('btn-hh').className='main-btn'+(m==='Household'?' sel-hh':'');
   document.getElementById('btn-pe').className='main-btn'+(m==='Personal'?' sel-pe':'');
   document.getElementById('save-btn').className='save-btn'+(m==='Personal'?' purple':'');
   buildSubGrid();
 }
 
-function buildSubGrid() {
-  const subs=CATS[selMain].subs;
-  const cls=selMain==='Household'?'sel-hh':'sel-pe';
+function buildSubGrid(){
+  const subs=CATS[selMain].subs,cls=selMain==='Household'?'sel-hh':'sel-pe';
   document.getElementById('sub-grid').innerHTML=subs.map(s=>
-    `<button class="sub-btn ${selSub===s.n?cls:''}" onclick="selectSub('${s.n}')">
-       <span class="se">${s.e}</span><span class="sn">${s.n}</span>
-     </button>`
+    `<button class="sub-btn ${selSub===s.n?cls:''}" onclick="selectSub('${s.n}')"><span class="se">${s.e}</span><span class="sn">${s.n}</span></button>`
   ).join('');
 }
 
-function highlightSub() { buildSubGrid(); }
+function selectSub(n){selSub=n;buildSubGrid();}
 
-function selectSub(n) { selSub=n; buildSubGrid(); }
-
-function saveExpense() {
+function saveExpense(){
   const amt=parseFloat(document.getElementById('amt').value);
-  if(!amt||amt<=0){ showToast('Enter an amount'); return; }
-  if(!selSub){ showToast('Choose a sub-category'); return; }
+  if(!amt||amt<=0){showToast('Enter an amount');return;}
+  if(!selSub){showToast('Choose a sub-category');return;}
   const note=document.getElementById('note').value.trim();
   const date=document.getElementById('date-inp').value||today();
   const all=load();
-  if(editId) {
-    const i=all.findIndex(x=>x.id===editId);
-    if(i>-1) all[i]={...all[i],amount:amt,main:selMain,sub:selSub,note,date};
-  } else {
-    all.unshift({id:Date.now(),date,amount:amt,main:selMain,sub:selSub,note});
-  }
-  store(all);
-  closeModal();
-  renderHome();
-  showTab('home');
-  showToast(editId?'Saved ✓':'Expense added ✓');
-  editId=null;
+  if(editId){const i=all.findIndex(x=>x.id===editId);if(i>-1)all[i]={...all[i],amount:amt,main:selMain,sub:selSub,note,date};}
+  else all.unshift({id:Date.now(),date,amount:amt,main:selMain,sub:selSub,note});
+  store(all);closeModal();renderHome();showTab('home');
+  showToast(editId?'Saved ✓':'Added ✓');editId=null;
 }
 
-function deleteExpense() {
-  if(!editId||!confirm('Delete this expense?')) return;
+function deleteExpense(){
+  if(!editId||!confirm('Delete this expense?'))return;
   store(load().filter(x=>x.id!==editId));
-  closeModal();
-  renderHome();
-  showToast('Deleted');
-  editId=null;
+  closeModal();renderHome();showToast('Deleted');editId=null;
 }
 
-// ════════════════ AI – RECEIPT ════════════════
-async function handleReceipt(inp) {
-  const f=inp.files[0]; if(!f) return;
+async function handleReceipt(inp){
+  const f=inp.files[0];if(!f)return;
   const b64=await toB64(f);
   document.getElementById('ph-prev').src='data:'+f.type+';base64,'+b64;
   document.getElementById('ph-prev').style.display='block';
-  const key=localStorage.getItem('anthropic_key');
-  if(!key) return;
+  const key=localStorage.getItem('anthropic_key');if(!key)return;
   document.getElementById('ai-tag').style.display='inline';
   document.getElementById('save-btn').disabled=true;
-  try {
+  try{
     const r=await callClaude(key,[
       {type:'image',source:{type:'base64',media_type:f.type,data:b64}},
-      {type:'text',text:'Read this receipt. Return ONLY JSON (no markdown):\n{"amount":0,"main":"Household or Personal","sub":"subcategory","note":"2-5 word description"}\n\nHousehold subs: Electricity,Gas,Water,Internet,Phone,Salary,Club,Rent,Maintenance,Groceries,Other\nPersonal subs: Dining,Coffee,Beauty,Fashion,Health,Transport,Salik,Petrol,Shopping,Fun,Gifts,Education,Travel,Other\nSalik=road toll. amount=total due as number.'}
+      {type:'text',text:'Read this receipt. Return ONLY JSON (no markdown):\n{"amount":0,"main":"Household or Personal","sub":"subcategory","note":"2-5 word description"}\nHousehold subs:Electricity,Gas,Water,Internet,Phone,Salary,Club,Rent,Maintenance,Groceries,Other\nPersonal subs:Dining,Coffee,Beauty,Fashion,Health,Transport,Salik,Petrol,Shopping,Fun,Gifts,Education,Travel,Other\nSalik=road toll. amount=total due as number.'}
     ]);
-    const d=parseJSON(r);
-    if(d.amount>0) document.getElementById('amt').value=Math.round(d.amount);
-    if(d.main && CATS[d.main]){ selMain=d.main; setMain(d.main); }
-    if(d.sub)  { selSub=d.sub; buildSubGrid(); }
-    if(d.note) document.getElementById('note').value=d.note;
+    const d=parseJ(r);
+    if(d.amount>0)document.getElementById('amt').value=Math.round(d.amount);
+    if(d.main&&CATS[d.main]){selMain=d.main;setMain(d.main);}
+    if(d.sub){selSub=d.sub;buildSubGrid();}
+    if(d.note)document.getElementById('note').value=d.note;
     showToast('Receipt read ✓');
-  } catch{ showToast('Could not read — enter manually'); }
+  }catch{showToast('Could not read — enter manually');}
   document.getElementById('ai-tag').style.display='none';
   document.getElementById('save-btn').disabled=false;
 }
 
-// ════════════════ AI – BANK STATEMENT ════════════════
-async function handleStatement(inp) {
-  const f=inp.files[0]; if(!f) return;
-  inp.value='';
+async function handleStatement(inp){
+  const f=inp.files[0];if(!f)return;inp.value='';
   const key=localStorage.getItem('anthropic_key');
-  if(!key){
-    showToast('Add your API key in Settings first');
-    return;
-  }
-  const ib=document.getElementById('import-body');
-  ib.innerHTML=`<div class="import-progress"><span class="spinner"></span> Reading statement, please wait…</div>`;
-
-  try {
+  if(!key){showToast('Add your API key in Settings first');return;}
+  document.getElementById('import-body').innerHTML=`<div class="import-progress"><span class="spinner"></span>Reading statement…</div>`;
+  try{
     const b64=await toB64(f);
-    const subsHH='Electricity,Gas,Water,Internet,Phone,Salary,Club,Rent,Maintenance,Groceries,Other';
-    const subsPE='Dining,Coffee,Beauty,Fashion,Health,Transport,Salik,Petrol,Shopping,Fun,Gifts,Education,Travel,Other';
     const r=await callClaude(key,[
       {type:'image',source:{type:'base64',media_type:f.type,data:b64}},
       {type:'text',text:`Extract ALL debit/payment transactions from this bank statement.
 Return a JSON array (no markdown). Each item:
 {"date":"YYYY-MM-DD","desc":"merchant name","amount":0.00,"main":"Household or Personal","sub":"subcategory"}
-
-Household subs: ${subsHH}
-Personal subs: ${subsPE}
-
-Rules: Salik/toll=Personal/Salik. DEWA/SEWA/water=Household/Electricity or Water. du/Etisalat=Household/Internet. Restaurant/cafe=Personal/Dining. Skip credits, ATM withdrawals if not a purchase, and transfers between own accounts. Amount must be positive number.`}
-    ],800);
-    let arr=parseJSON(r);
-    if(!Array.isArray(arr)) throw new Error('not array');
-    arr=arr.filter(x=>x.amount>0);
-    importPending=arr.map((x,i)=>({...x,_i:i,_on:true}));
+Household subs:Electricity,Gas,Water,Internet,Phone,Salary,Club,Rent,Maintenance,Groceries,Other
+Personal subs:Dining,Coffee,Beauty,Fashion,Health,Transport,Salik,Petrol,Shopping,Fun,Gifts,Education,Travel,Other
+Salik/toll=Personal/Salik. DEWA/SEWA=Household/Electricity. du/Etisalat=Household/Internet. Restaurant/cafe=Personal/Dining. Skip credits and own-account transfers. Amount=positive number.`}
+    ],900);
+    let arr=parseJ(r);
+    if(!Array.isArray(arr))throw new Error();
+    importPending=arr.filter(x=>x.amount>0).map((x,i)=>({...x,_i:i,_on:true}));
     renderReview();
-  } catch(err) {
-    document.getElementById('import-body').innerHTML=`
-      <div class="empty"><div class="empty-i">⚠️</div>
-        <div class="empty-t">Could not read statement</div>
-        <div class="empty-s">Try a clearer screenshot, or add expenses manually.</div>
-      </div>
-      <label class="import-upload-area" for="stmt-input" style="margin-top:16px">
-        <div class="import-icon">🏦</div><div class="import-title">Try Again</div>
-      </label>
-      <input type="file" id="stmt-input" accept="image/*" style="display:none" onchange="handleStatement(this)">`;
+  }catch{
+    document.getElementById('import-body').innerHTML=`<div class="empty"><div class="empty-i">⚠️</div><div class="empty-t">Could not read statement</div><div class="empty-s">Try a clearer screenshot</div></div>
+    <label class="import-upload" for="stmt-input" style="margin-top:14px"><div class="import-icon">🏦</div><div class="import-title">Try Again</div></label>
+    <input type="file" id="stmt-input" accept="image/*" style="display:none" onchange="handleStatement(this)">`;
   }
 }
 
-function renderReview() {
+function renderReview(){
   const on=importPending.filter(x=>x._on).length;
-  let html=`<div class="review-header">
-    <span class="review-title">${importPending.length} transactions found</span>
-    <button class="s-btn s-btn-blue" onclick="toggleAll()">Toggle All</button>
-  </div>`;
+  let html=`<div class="review-hdr"><span class="review-title">${importPending.length} transactions found</span><button class="s-btn s-btn-blue" onclick="toggleAll()">Toggle All</button></div>`;
   importPending.forEach((t,i)=>{
-    const cat=CATS[t.main]||CATS.Personal;
-    const sub=cat.subs.find(s=>s.n===t.sub)||{e:'💳'};
+    const cat=CATS[t.main]||CATS.Personal,sub=cat.subs.find(s=>s.n===t.sub)||{e:'💳'};
     const col=t.main==='Household'?'#1E3A5F':'#6D28D9';
+    const bg=t.main==='Household'?'#DBEAFE':'#EDE9FE';
     html+=`<div class="review-row">
-      <input type="checkbox" class="review-check" ${t._on?'checked':''} onchange="importPending[${i}]._on=this.checked; refreshCount()">
-      <div class="review-info">
-        <div class="review-desc">${t.desc}</div>
-        <div class="review-date">${t.date}</div>
-        <div class="review-cats">
-          <span class="ex-badge" style="background:${t.main==='Household'?'#DBEAFE':'#EDE9FE'};color:${col}">${sub.e} ${t.sub}</span>
-          <span class="ex-badge" style="background:#F3F4F6;color:#6B7280">${t.main}</span>
-        </div>
+      <input type="checkbox" class="review-check" ${t._on?'checked':''} onchange="importPending[${i}]._on=this.checked;refreshCount()">
+      <div class="review-info"><div class="review-desc">${t.desc}</div><div class="review-date">${t.date}</div>
+        <div class="review-cats"><span class="ex-badge" style="background:${bg};color:${col}">${sub.e} ${t.sub}</span><span class="ex-badge" style="background:var(--border);color:var(--muted)">${t.main}</span></div>
       </div>
       <div class="review-amt">${c(t.amount)}</div>
       <span class="review-edit" onclick="editPending(${i})">✏️</span>
     </div>`;
   });
   html+=`<div class="import-actions">
-    <button class="import-btn import-btn-main" id="import-do-btn" onclick="doImport()">Import ${on} expenses</button>
-    <button class="import-btn import-btn-sec" onclick="cancelImport()">Cancel</button>
+    <button class="imp-btn imp-btn-main" id="imp-do-btn" onclick="doImport()">Import ${on} expenses</button>
+    <button class="imp-btn imp-btn-sec" onclick="cancelImport()">Cancel</button>
   </div>`;
   document.getElementById('import-body').innerHTML=html;
 }
 
-function refreshCount() {
+function refreshCount(){
   const on=importPending.filter(x=>x._on).length;
-  const btn=document.getElementById('import-do-btn');
-  if(btn) btn.textContent=`Import ${on} expenses`;
+  const b=document.getElementById('imp-do-btn');if(b)b.textContent=`Import ${on} expenses`;
 }
 
-function toggleAll() {
-  const allOn=importPending.every(x=>x._on);
-  importPending.forEach(x=>x._on=!allOn);
-  renderReview();
-}
+function toggleAll(){const a=importPending.every(x=>x._on);importPending.forEach(x=>x._on=!a);renderReview();}
 
-function editPending(i) {
-  const t=importPending[i];
-  editId=null; selMain=t.main||'Personal'; selSub=t.sub||null;
+function editPending(i){
+  const t=importPending[i];editId=null;selMain=t.main||'Personal';selSub=t.sub||null;
   document.getElementById('modal-title').textContent='Edit Transaction';
   document.getElementById('amt').value=t.amount;
   document.getElementById('note').value=t.desc||'';
@@ -754,187 +618,103 @@ function editPending(i) {
   document.getElementById('ai-tag').style.display='none';
   document.getElementById('del-btn').style.display='none';
   document.getElementById('curr-lbl').textContent=getCurr();
-  setMain(selMain,true); highlightSub();
-  // override save to update pending list
+  setMain(selMain,true);buildSubGrid();
   document.getElementById('save-btn').onclick=function(){
     importPending[i].amount=parseFloat(document.getElementById('amt').value)||t.amount;
     importPending[i].desc=document.getElementById('note').value||t.desc;
     importPending[i].date=document.getElementById('date-inp').value||t.date;
-    importPending[i].main=selMain; importPending[i].sub=selSub||t.sub;
+    importPending[i].main=selMain;importPending[i].sub=selSub||t.sub;
     document.getElementById('save-btn').onclick=saveExpense;
-    closeModal(); renderReview();
+    closeModal();renderReview();
   };
   document.getElementById('add-overlay').classList.add('open');
 }
 
-function doImport() {
+function doImport(){
   const toAdd=importPending.filter(x=>x._on);
-  if(!toAdd.length){ showToast('Nothing selected'); return; }
+  if(!toAdd.length){showToast('Nothing selected');return;}
   const all=load();
-  toAdd.forEach(t=>{
-    all.unshift({id:Date.now()+Math.random(),date:t.date||today(),amount:t.amount,main:t.main,sub:t.sub,note:t.desc||''});
-  });
-  store(all);
-  cancelImport();
-  showTab('home');
-  showToast(`${toAdd.length} expenses imported ✓`);
+  toAdd.forEach(t=>all.unshift({id:Date.now()+Math.random(),date:t.date||today(),amount:t.amount,main:t.main,sub:t.sub,note:t.desc||''}));
+  store(all);cancelImport();showTab('home');showToast(`${toAdd.length} expenses imported ✓`);
 }
 
-function cancelImport() {
+function cancelImport(){
   importPending=[];
   document.getElementById('import-body').innerHTML=`
-    <label class="import-upload-area" for="stmt-input">
-      <div class="import-icon">🏦</div>
-      <div class="import-title">Upload Statement Photo</div>
-      <div class="import-sub">Screenshot or photo of your bank statement</div>
-    </label>
+    <label class="import-upload" for="stmt-input"><div class="import-icon">🏦</div><div class="import-title">Upload Statement Photo</div><div class="import-sub">Screenshot of your bank transactions</div></label>
     <input type="file" id="stmt-input" accept="image/*" style="display:none" onchange="handleStatement(this)">
-    <p class="import-note">💡 Take a screenshot of your bank statement (transactions page) and upload it. The AI will extract all expenses automatically.</p>`;
+    <p class="import-tip">💡 Take a screenshot of your bank statement and upload it. The AI will extract all transactions automatically.</p>`;
 }
 
-// ════════════════ EXPORT ════════════════
-function exportExcel() {
-  const all=load();
-  if(!all.length){ showToast('No expenses to export'); return; }
+function exportExcel(){
+  const all=load();if(!all.length){showToast('No data to export');return;}
   const wb=XLSX.utils.book_new();
-  const rows=all.map(e=>({'Date':e.date,'Main Category':e.main,'Sub Category':e.sub,'Note':e.note||'','Amount':e.amount,'Currency':getCurr()}));
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),'All Expenses');
-
-  // Monthly summary
-  const byM={};
-  all.forEach(e=>{const m=e.date.slice(0,7);(byM[m]=byM[m]||[]).push(e);});
-  const sumRows=Object.keys(byM).sort().reverse().map(m=>{
-    const me=byM[m];
-    const hh=me.filter(e=>e.main==='Household').reduce((s,e)=>s+e.amount,0);
-    const pe=me.filter(e=>e.main==='Personal').reduce((s,e)=>s+e.amount,0);
-    return {'Month':m,'Household':hh,'Personal':pe,'Total':hh+pe};
-  });
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(sumRows),'Monthly Summary');
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(all.map(e=>({'Date':e.date,'Main':e.main,'Sub':e.sub,'Note':e.note||'','Amount':e.amount,'Currency':getCurr()}))),'All Expenses');
+  const byM={};all.forEach(e=>{const m=e.date.slice(0,7);(byM[m]=byM[m]||[]).push(e);});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.keys(byM).sort().reverse().map(m=>{const me=byM[m];const hh=me.filter(e=>e.main==='Household').reduce((s,e)=>s+e.amount,0);const pe=me.filter(e=>e.main==='Personal').reduce((s,e)=>s+e.amount,0);return{'Month':m,'Household':hh,'Personal':pe,'Total':hh+pe};})),'Monthly Summary');
   XLSX.writeFile(wb,'expenses_'+new Date().toISOString().slice(0,7)+'.xlsx');
 }
 
-function exportPDF() {
-  const {label,start,end}=monthRange(sMonth||hMonth);
-  const all=load(), month=all.filter(e=>e.date>=start&&e.date<=end);
+function exportPDF(){
+  const{label,start,end}=monthRange(hMo);
+  const all=load(),month=all.filter(e=>e.date>=start&&e.date<=end);
   const total=month.reduce((s,e)=>s+(e.amount||0),0);
-  const hhExp=month.filter(e=>e.main==='Household');
-  const peExp=month.filter(e=>e.main==='Personal');
-  const hhTot=hhExp.reduce((s,e)=>s+(e.amount||0),0);
-  const peTot=peExp.reduce((s,e)=>s+(e.amount||0),0);
+  const hh=month.filter(e=>e.main==='Household'),pe=month.filter(e=>e.main==='Personal');
+  const hhT=hh.reduce((s,e)=>s+(e.amount||0),0),peT=pe.reduce((s,e)=>s+(e.amount||0),0);
   const curr=getCurr();
-
-  function tbl(exps) {
-    if(!exps.length) return '<p style="color:#9CA3AF;font-size:13px">No expenses</p>';
-    return `<table class="pr-table"><thead><tr><th>Date</th><th>Sub Category</th><th>Note</th><th style="text-align:right">Amount (${curr})</th></tr></thead><tbody>
-    ${exps.map(e=>`<tr><td>${e.date}</td><td>${e.sub}</td><td>${e.note||'—'}</td><td style="text-align:right;font-weight:700">${fmt(e.amount)}</td></tr>`).join('')}
-    </tbody></table>`;
-  }
-
-  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <style>
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;padding:32px;color:#1F2937}
-    h1{font-size:24px;font-weight:800;margin-bottom:4px}
-    .sub{font-size:14px;color:#6B7280;margin-bottom:24px}
-    .summary{display:flex;gap:16px;margin-bottom:28px}
-    .box{flex:1;border-radius:10px;padding:14px}
-    .box-hh{background:#DBEAFE} .box-pe{background:#EDE9FE} .box-tot{background:#D1FAE5}
-    .box-l{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase}
-    .box-a{font-size:20px;font-weight:800;margin-top:4px}
-    .sec{font-size:16px;font-weight:800;margin:24px 0 10px;padding-bottom:6px;border-bottom:2px solid #E5E7EB}
-    table{width:100%;border-collapse:collapse;font-size:13px}
-    th{background:#F8FAFC;padding:8px 10px;text-align:left;font-weight:700;color:#6B7280;border-bottom:1px solid #E5E7EB}
-    td{padding:8px 10px;border-bottom:1px solid #F3F4F6}
-    @media print{body{padding:20px}}
-  </style>
-  </head><body>
-  <h1>Expense Report</h1>
-  <div class="sub">${label}</div>
-  <div class="summary">
-    <div class="box box-hh"><div class="box-l">Household</div><div class="box-a">${curr} ${fmt(hhTot)}</div></div>
-    <div class="box box-pe"><div class="box-l">Personal</div><div class="box-a">${curr} ${fmt(peTot)}</div></div>
-    <div class="box box-tot"><div class="box-l">Total</div><div class="box-a">${curr} ${fmt(total)}</div></div>
-  </div>
-  <div class="sec">🏠 Household Expenses</div>${tbl(hhExp)}
-  <div class="sec">👤 Personal Expenses</div>${tbl(peExp)}
-  </body></html>`;
-
+  const tbl=exps=>!exps.length?'<p style="color:#9CA3AF;font-size:13px">No expenses</p>':`<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>${['Date','Category','Note','Amount'].map(h=>`<th style="background:#F8FAFC;padding:7px 10px;text-align:left;border-bottom:1px solid #E5E7EB">${h}</th>`).join('')}</tr></thead><tbody>${exps.map(e=>`<tr><td style="padding:7px 10px;border-bottom:1px solid #F9FAFB">${e.date}</td><td style="padding:7px 10px;border-bottom:1px solid #F9FAFB">${e.sub}</td><td style="padding:7px 10px;border-bottom:1px solid #F9FAFB">${e.note||'—'}</td><td style="padding:7px 10px;border-bottom:1px solid #F9FAFB;text-align:right;font-weight:700">${fmt(e.amount)}</td></tr>`).join('')}</tbody></table>`;
   const w=window.open('','_blank');
-  w.document.write(html);
-  w.document.close();
-  setTimeout(()=>w.print(), 600);
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:-apple-system,sans-serif;padding:32px;color:#1F2937}h1{font-size:22px;font-weight:800;margin-bottom:4px}.sub{color:#6B7280;font-size:13px;margin-bottom:22px}.cards{display:flex;gap:14px;margin-bottom:24px}.card{flex:1;border-radius:10px;padding:14px}.card-l{font-size:11px;font-weight:700;color:#6B7280;text-transform:uppercase}.card-a{font-size:20px;font-weight:800;margin-top:4px}.sec{font-size:15px;font-weight:800;margin:20px 0 8px;padding-bottom:5px;border-bottom:2px solid #E5E7EB}@media print{body{padding:20px}}</style></head><body>
+  <h1>Expense Report</h1><div class="sub">${label}</div>
+  <div class="cards">
+    <div class="card" style="background:#DBEAFE"><div class="card-l">Household</div><div class="card-a">${curr} ${fmt(hhT)}</div></div>
+    <div class="card" style="background:#EDE9FE"><div class="card-l">Personal</div><div class="card-a">${curr} ${fmt(peT)}</div></div>
+    <div class="card" style="background:#D1FAE5"><div class="card-l">Total</div><div class="card-a">${curr} ${fmt(total)}</div></div>
+  </div>
+  <div class="sec">🏠 Household</div>${tbl(hh)}
+  <div class="sec">👤 Personal</div>${tbl(pe)}
+  </body></html>`);
+  w.document.close();setTimeout(()=>w.print(),600);
 }
 
-// ════════════════ SETTINGS ════════════════
-function renderSettingsPage() {
-  const sel=document.getElementById('curr-select');
-  if(sel) sel.value=getCurr();
-  const ki=document.getElementById('key-input');
+function renderSettingsPage(){
+  const s=document.getElementById('curr-select');if(s)s.value=getCurr();
   const k=localStorage.getItem('anthropic_key')||'';
-  if(ki) ki.value=k?'••••••'+k.slice(-4):'';
-}
-function saveKey() {
-  const v=document.getElementById('key-input').value.trim();
-  if(v && !v.startsWith('••')){
-    localStorage.setItem('anthropic_key',v);
-    showToast('API key saved ✓');
-    renderSettingsPage();
-  }
-}
-function clearAll() {
-  if(!confirm('Delete ALL expenses? Cannot be undone.')) return;
-  localStorage.removeItem(SK);
-  renderHome();
-  showToast('All data cleared');
+  const ki=document.getElementById('key-input');if(ki)ki.value=k?'••••••'+k.slice(-4):'';
 }
 
-// ════════════════ AI HELPERS ════════════════
-async function callClaude(key, content, maxT=300) {
-  const r=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'x-api-key':key,
-      'anthropic-version':'2023-06-01',
-      'content-type':'application/json',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxT,messages:[{role:'user',content}]})
-  });
-  if(!r.ok) throw new Error('API error '+r.status);
-  const d=await r.json();
-  return d.content[0].text.trim();
+function saveCurr(){localStorage.setItem('currency',document.getElementById('curr-select').value);document.getElementById('curr-lbl').textContent=getCurr();renderHome();renderStats();}
+function saveKey(){const v=document.getElementById('key-input').value.trim();if(v&&!v.startsWith('••')){localStorage.setItem('anthropic_key',v);showToast('API key saved ✓');renderSettingsPage();}}
+function clearAll(){if(!confirm('Delete ALL expenses?'))return;localStorage.removeItem(SK);renderHome();showToast('Cleared');}
+
+async function callClaude(key,content,maxT=300){
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:maxT,messages:[{role:'user',content}]})});
+  if(!r.ok)throw new Error('API '+r.status);
+  return(await r.json()).content[0].text.trim();
 }
 
-function parseJSON(text) {
-  if(text.includes('```')) {
-    for(const p of text.split('```')) {
-      const t=p.trim().replace(/^json/,'').trim();
-      try{ return JSON.parse(t); }catch{}
-    }
-  }
+function parseJ(text){
+  if(text.includes('```')){for(const p of text.split('```')){const t=p.trim().replace(/^json/,'').trim();try{return JSON.parse(t);}catch{}}}
   return JSON.parse(text);
 }
 
-function toB64(file) {
-  return new Promise((res,rej)=>{
-    const r=new FileReader();
-    r.onload=e=>res(e.target.result.split(',')[1]);
-    r.onerror=rej;
-    r.readAsDataURL(file);
-  });
-}
+function toB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=e=>res(e.target.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});}
 
-// ════════════════ UTILS ════════════════
-function fmt(n){ return Math.round(n).toLocaleString('en'); }
-function today(){ return new Date().toISOString().split('T')[0]; }
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
-}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
 
-// ════════════════ INIT ════════════════
+// add a few sample expenses so the app doesn't open empty
+(function(){
+  if(load().length)return;
+  const d=today();
+  const samples=[
+    {id:1,date:d,amount:3200,main:'Household',sub:'Electricity',note:'LESCO August'},
+    {id:2,date:d,amount:850, main:'Personal', sub:'Dining',    note:'Cosa Nostra lunch'},
+    {id:3,date:d,amount:1200,main:'Household',sub:'Internet',  note:'PTCL monthly'},
+    {id:4,date:d,amount:430, main:'Personal', sub:'Coffee',    note:'Gloria Jeans'},
+  ];
+  store(samples);
+})();
+
 document.getElementById('curr-lbl').textContent=getCurr();
 renderHome();
 </script>
-</body>
-</html>
